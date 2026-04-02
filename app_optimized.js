@@ -26,18 +26,29 @@ function formatDate(day) {
 // JSONデータ読み込み
 async function loadData() {
     try {
-        const statsResponse = await fetch('stats.json');
+        // 1. URLからパラメータを取得 (例: ?data=akita)
+        const urlParams = new URLSearchParams(window.location.search);
+        const dataPrefix = urlParams.get('data') || ''; // パラメータがない場合は空文字
+        
+        // 2. 読み込むファイル名を決定
+        // パラメータがあれば 'akita_stats.json'、なければ 'stats.json' を読み込む設計
+        const statsFile = dataPrefix ? `${dataPrefix}_stats.json` : 'stats.json';
+        const dataFile = dataPrefix ? `${dataPrefix}_bear_data.json` : 'bear_data.json';
+
+        console.log(`Loading: ${statsFile} and ${dataFile}`);
+
+        const statsResponse = await fetch(statsFile);
         stats = await statsResponse.json();
 
         document.getElementById('loading').querySelector('div:last-child').textContent =
             'データ読み込み中...';
 
-        const dataResponse = await fetch('bear_data.json');
+        const dataResponse = await fetch(dataFile);
         bearData = await dataResponse.json();
 
+        // (以下、既存の処理と同じ)
         document.getElementById('totalCount').textContent = stats.total_records.toLocaleString();
 
-        // エネルギー範囲を表示
         if (stats.min_energy !== undefined) {
             document.getElementById('energyRangeInfo').textContent =
                 `${stats.min_energy.toFixed(1)} 〜 ${stats.max_energy.toFixed(1)}`;
@@ -46,7 +57,7 @@ async function loadData() {
         return true;
     } catch (error) {
         console.error('データ読み込みエラー:', error);
-        alert('JSONファイルの読み込みに失敗しました。先にpreprocess_with_projection.pyを実行してください。');
+        alert('指定された地域のJSONファイルが見つかりません。');
         return false;
     }
 }
