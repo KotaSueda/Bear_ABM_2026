@@ -26,18 +26,17 @@ function formatDate(day) {
 // JSONデータ読み込み
 async function loadData() {
     try {
-        // 1. URLからパラメータを取得 (例: ?data=akita)
         const urlParams = new URLSearchParams(window.location.search);
-        const dataPrefix = urlParams.get('data') || ''; // パラメータがない場合は空文字
+        const area = urlParams.get('area'); // 'miyagi' や 'akita' が入る
         
-        // 2. 読み込むファイル名を決定
-        // パラメータがあれば 'akita_stats.json'、なければ 'stats.json' を読み込む設計
-        const statsFile = dataPrefix ? `${dataPrefix}_stats.json` : 'stats.json';
-        const dataFile = dataPrefix ? `${dataPrefix}_bear_data.json` : 'bear_data.json';
+        // ファイル名を決定（areaがなければデフォルトの stats.json を使う）
+        const statsFile = area ? `${area}_stats.json` : 'stats.json';
+        const dataFile = area ? `${area}_bear_data.json` : 'bear_data.json';
 
-        console.log(`Loading: ${statsFile} and ${dataFile}`);
+        console.log("現在読み込もうとしているファイル:", statsFile, dataFile);
 
         const statsResponse = await fetch(statsFile);
+        if (!statsResponse.ok) throw new Error(`${statsFile} が見つかりません (Status: ${statsResponse.status})`);
         stats = await statsResponse.json();
 
         document.getElementById('loading').querySelector('div:last-child').textContent =
