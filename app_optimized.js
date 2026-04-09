@@ -26,15 +26,35 @@ function formatDate(day) {
 // JSONデータ読み込み
 async function loadData() {
     try {
-        const statsResponse = await fetch('stats.json');
+        // 1. URLから 'area' パラメータを取得
+        const urlParams = new URLSearchParams(window.location.search);
+        const area = urlParams.get('area'); // 例: 'miyagi' や 'akita'
+
+        // 2. 読み込むファイル名を決定（パラメータがなければデフォルトを使用）
+        const statsFile = area ? `${area}_stats.json` : 'stats.json';
+        const dataFile = area ? `${area}_bear_data.json` : 'bear_data.json';
+
+        console.log("現在読み込もうとしているファイル:", statsFile, dataFile);
+
+        // 3. stats.json の読み込みとエラーチェック
+        const statsResponse = await fetch(statsFile);
+        if (!statsResponse.ok) {
+            throw new Error(`${statsFile} が見つかりません (Status: ${statsResponse.status})`);
+        }
         stats = await statsResponse.json();
 
+        // 画面のローディング文字を更新
         document.getElementById('loading').querySelector('div:last-child').textContent =
             'データ読み込み中...';
 
-        const dataResponse = await fetch('bear_data.json');
+        // 4. bear_data.json の読み込みとエラーチェック
+        const dataResponse = await fetch(dataFile);
+        if (!dataResponse.ok) {
+            throw new Error(`${dataFile} が見つかりません (Status: ${dataResponse.status})`);
+        }
         bearData = await dataResponse.json();
 
+        // 5. 画面への反映処理
         document.getElementById('totalCount').textContent = stats.total_records.toLocaleString();
 
         // エネルギー範囲を表示
@@ -44,9 +64,14 @@ async function loadData() {
         }
 
         return true;
+
     } catch (error) {
+        // エラー時の処理
         console.error('データ読み込みエラー:', error);
-        alert('JSONファイルの読み込みに失敗しました。先にpreprocess_with_projection.pyを実行してください。');
+        
+        // 元のメッセージと、地域ファイル欠品時のメッセージを組み合わせたアラート
+        alert(`JSONファイルの読み込みに失敗しました。\n・URLの地域パラメータが正しいか\n・先に preprocess_with_projection.py などのデータ生成スクリプトを実行したか\nを確認してください。`);
+        
         return false;
     }
 }
