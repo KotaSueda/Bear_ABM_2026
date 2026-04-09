@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ツキノワグマ位置ヒートマップ</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        #map {
+            width: 100%;
+            height: 100vh;
+        }
+        .controls {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 1000;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            min-width: 300px;
+        }
+        .control-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #333;
+        }
+        input[type="range"] {
+            width: 100%;
+        }
+        .day-display {
+            font-size: 24px;
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        .date-display {
+            font-size: 14px;
+            color: #7f8c8d;
+            text-align: center;
+            margin-bottom: 15px;
+        }
+        button {
+            width: 100%;
+            padding: 10px;
+            margin: 5px 0;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        .play-btn {
+            background: #27ae60;
+            color: white;
+        }
+        .play-btn:hover {
+            background: #229954;
+        }
+        .stop-btn {
+            background: #e74c3c;
+            color: white;
+        }
+        .stop-btn:hover {
+            background: #c0392b;
+        }
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 2000;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 20px rgba(0,0,0,0.3);
+            text-align: center;
+        }
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .stats {
+            font-size: 12px;
+            color: #7f8c8d;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid #ecf0f1;
+        }
+        .controls {
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        .filter-section {
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px solid #ecf0f1;
+        }
+        .filter-section label {
+            margin-bottom: 8px;
+        }
+        .filter-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            margin-bottom: 8px;
+        }
+        .filter-btn {
+            width: auto;
+            padding: 5px 12px;
+            margin: 0;
+            font-size: 12px;
+            border: 2px solid #3498db;
+            background: #3498db;
+            color: white;
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .filter-btn.inactive {
+            background: white;
+            color: #3498db;
+        }
+        .filter-btn:hover {
+            opacity: 0.8;
+        }
+        .energy-range {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+        }
+        .energy-range input {
+            width: 80px;
+            padding: 4px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            text-align: center;
+        }
+        .dual-range {
+            position: relative;
+            height: 18px;
+            width: 100%;
+            margin: 10px 0;
+        }
+        .dual-range-track {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 100%;
+            height: 6px;
+            border-radius: 3px;
+            background: #ddd;
+        }
+        .dual-range-highlight {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            height: 6px;
+            border-radius: 3px;
+            background: #3498db;
+        }
+        .dual-range input[type="range"] {
+            position: absolute;
+            width: 100%;
+            top: 50%;
+            transform: translateY(-50%);
+            pointer-events: none;
+            -webkit-appearance: none;
+            appearance: none;
+            background: transparent;
+            margin: 0;
+            height: 18px;
+        }
+        .dual-range input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #3498db;
+            cursor: pointer;
+            pointer-events: auto;
+            border: 2px solid white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+            position: relative;
+            z-index: 2;
+            margin-top: -6px;
+        }
+        .dual-range input[type="range"]::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #3498db;
+            cursor: pointer;
+            pointer-events: auto;
+            border: 2px solid white;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+        }
+        .dual-range input[type="range"]::-webkit-slider-runnable-track {
+            height: 6px;
+            background: transparent;
+        }
+        .dual-range input[type="range"]::-moz-range-track {
+            height: 6px;
+            background: transparent;
+        }
+    </style>
+</head>
+<body>
+    <div id="loading" class="loading">
+        <div class="spinner"></div>
+        <div>データ読み込み中...</div>
+    </div>
+    
+    <div id="map"></div>
+    
+    <div class="controls">
+        <div class="date-display" id="dateDisplay" style="font-size:24px; color:#2c3e50;">2026年4月1日</div>
+        
+        <div class="control-group">
+            <label for="daySlider">日付選択 (4/1〜7/31)</label>
+            <input type="range" id="daySlider" min="91" max="212" value="91">
+        </div>
+        
+        <button id="playBtn" class="play-btn">▶ 再生</button>
+        <button id="stopBtn" class="stop-btn" style="display:none;">■ 停止</button>
+        
+        <div class="control-group">
+            <label for="speedSlider">再生速度</label>
+            <input type="range" id="speedSlider" min="100" max="2000" value="500" step="100">
+            <div style="text-align: center; font-size: 12px; color: #7f8c8d;">
+                遅 ← <span id="speedDisplay">1600</span>ms/日 → 速
+            </div>
+        </div>
+        
+        <div class="control-group">
+            <label for="opacitySlider">ヒートマップ濃淡</label>
+            <input type="range" id="opacitySlider" min="0" max="100" value="70" step="5">
+            <div style="text-align: center; font-size: 12px; color: #7f8c8d;">
+                薄 ← <span id="opacityDisplay">70</span>% → 濃
+            </div>
+        </div>
+        
+        <div class="control-group">
+            <label for="radiusSlider">ヒートマップ半径</label>
+            <input type="range" id="radiusSlider" min="10" max="50" value="25" step="5">
+            <div style="text-align: center; font-size: 12px; color: #7f8c8d;">
+                <span id="radiusDisplay">25</span>px
+            </div>
+        </div>
+        
+        <div class="stats">
+            <div>総データ数: <span id="totalCount">-</span></div>
+            <div>表示中: <span id="displayCount">-</span>頭</div>
+        </div>
+        
+        <div class="filter-section">
+            <label>年齢クラス</label>
+            <div class="filter-buttons" id="ageClassFilter">
+                <button class="filter-btn" data-value="Cu">仔熊0歳</button>
+                <button class="filter-btn" data-value="Yr">1歳</button>
+                <button class="filter-btn" data-value="Su">若獣2-3歳</button>
+                <button class="filter-btn" data-value="Ad">成獣4歳-</button>
+            </div>
+            
+            <label>性別</label>
+            <div class="filter-buttons" id="genderFilter">
+                <button class="filter-btn" data-value="F">メス</button>
+                <button class="filter-btn" data-value="M">オス</button>
+            </div>
+            
+            <label>繁殖状態</label>
+            <div class="filter-buttons" id="reproFilter">
+                <button class="filter-btn" data-value="LACTATING">子連れ</button>
+                <button class="filter-btn" data-value="SINGLE">単独</button>
+            </div>
+            
+            <label>エネルギー</label>
+            <div style="font-size:12px; color:#555; margin-bottom:4px;">
+                <span id="energyMinDisplay">0</span> 〜 <span id="energyMaxDisplay">100</span>
+            </div>
+            <div class="dual-range" id="dualRange">
+                <div class="dual-range-track"></div>
+                <div class="dual-range-highlight" id="energyHighlight"></div>
+                <input type="range" id="energyMinSlider" min="0" max="100" value="0" step="1">
+                <input type="range" id="energyMaxSlider" min="0" max="100" value="100" step="1">
+            </div>
+            <div style="font-size:11px; color:#7f8c8d; margin-top:4px;">
+                データ範囲: <span id="energyRangeInfo">-</span>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+    <script src="app_optimized.js"></script>
+</body>
+</html>
