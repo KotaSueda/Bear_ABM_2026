@@ -24,7 +24,22 @@ async function loadRouteData() {
     btn.disabled = true;
 
     try {
-        const response = await fetch('result_ensemble_tohoku_0_12002_G_epsg2450_segments.geojson');
+        // 1. URLから 'area' パラメータを取得
+        const urlParams = new URLSearchParams(window.location.search);
+        const area = urlParams.get('area'); // 例: 'aomori'
+
+        // 2. 読み込むファイル名を決定
+        const baseFileName = 'result_ensemble_tohoku_0_12002_G_epsg2450_segments.geojson';
+        const fileName = area ? `${area}_${baseFileName}` : baseFileName;
+
+        console.log("読み込むGeoJSONファイル:", fileName);
+
+        // 3. fetchで読み込み、ファイルが存在するかチェック
+        const response = await fetch(fileName);
+        if (!response.ok) {
+            throw new Error(`${fileName} が見つかりません (Status: ${response.status})`);
+        }
+        
         routeData = await response.json();
 
         // 統計情報を更新
@@ -39,11 +54,14 @@ async function loadRouteData() {
         btn.textContent = '📍 経路を表示';
         btn.disabled = false;
         return routeData;
+
     } catch (error) {
         console.error('GeoJSON読み込みエラー:', error);
         btn.textContent = '📍 経路データを読み込む';
         btn.disabled = false;
-        alert('GeoJSONファイルの読み込みに失敗しました。');
+        
+        // ファイルが見つからなかった時のメッセージ
+        alert(`経路データの読み込みに失敗しました。\n対象のファイルがGitHubにアップロードされているか確認してください。`);
         return null;
     }
 }
