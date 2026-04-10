@@ -91,9 +91,9 @@ function drawKillChart(data, prefix) {
 }
 
 // 捕殺年齢分布
-function drawAgeDistChart(data, prefix) {
-    const key = `${prefix}kill_age_distribution`;
-    const values = data.map(d => d[key]);
+function drawAgeDistChart(data) {
+    const ageLabels = Array.from({length: 21}, (_, i) => `${i}歳`);
+    const values = data.map(d => d.kill_age_distribution);
 
     new Chart(document.getElementById('ageDistChart'), {
         type: 'bar',
