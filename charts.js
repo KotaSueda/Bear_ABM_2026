@@ -1,12 +1,20 @@
 // 統計グラフの描画
 async function loadAndDrawCharts() {
     try {
+        // 1. URLからパラメータを取得
+        const urlParams = new URLSearchParams(window.location.search);
+        const area = urlParams.get('area'); // 例: 'aomori'
+        
+        // 2. 変数の接頭辞を作成（areaがあれば 'aomori_'、なければ空文字）
+        const prefix = area ? `${area}_` : '';
+
         const response = await fetch('metrics_ensemble_tohoku_0_12002_Great.json');
         const data = await response.json();
 
-        drawSightingChart(data);
-        drawKillChart(data);
-        drawAgeDistChart(data);
+        // 3. 各描画関数にプレフィックスを渡す
+        drawSightingChart(data, prefix);
+        drawKillChart(data, prefix);
+        drawAgeDistChart(data, prefix);
     } catch (error) {
         console.error('統計JSONの読み込みエラー:', error);
     }
@@ -22,8 +30,10 @@ const noInteraction = {
 };
 
 // 月別市街地出没トレンド
-function drawSightingChart(data) {
-    const values = data.slice(0, 12).map(d => d.sighting_trend);
+function drawSightingChart(data, prefix) {
+    // 例: aomori_sighting_trend などのキー名を作成してデータを取得
+    const key = `${prefix}sighting_trend`;
+    const values = data.slice(0, 12).map(d => d[key]);
 
     new Chart(document.getElementById('sightingChart'), {
         type: 'bar',
@@ -51,8 +61,9 @@ function drawSightingChart(data) {
 }
 
 // 月別捕殺数トレンド
-function drawKillChart(data) {
-    const values = data.slice(0, 12).map(d => d.kill_trend);
+function drawKillChart(data, prefix) {
+    const key = `${prefix}kill_trend`;
+    const values = data.slice(0, 12).map(d => d[key]);
 
     new Chart(document.getElementById('killChart'), {
         type: 'bar',
@@ -80,9 +91,9 @@ function drawKillChart(data) {
 }
 
 // 捕殺年齢分布
-function drawAgeDistChart(data) {
-    const ageLabels = Array.from({length: 21}, (_, i) => `${i}歳`);
-    const values = data.map(d => d.kill_age_distribution);
+function drawAgeDistChart(data, prefix) {
+    const key = `${prefix}kill_age_distribution`;
+    const values = data.map(d => d[key]);
 
     new Chart(document.getElementById('ageDistChart'), {
         type: 'bar',
